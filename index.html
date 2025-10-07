@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>SKU 查詢系統</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin-left: auto; margin-right: 0;
+    }
+
+    label {
+      font-weight: bold;
+      margin-top: 15px;
+      display: block;
+    }
+
+    input[type="text"] {
+  font-size: 1.2em;
+  padding: 8px;
+  width: 100%;
+  max-width: 300px;
+  box-sizing: border-box;
+}
+      font-size: 1.2em;
+      padding: 8px;
+      width: 100%;
+      max-width: 300px;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      font-size: 1.1em;
+      padding: 8px;
+      width: 100%;
+      max-width: 500px;
+      box-sizing: border-box;
+    }
+
+    button {
+      font-size: 1.2em;
+      padding: 10px 20px;
+      margin-right: 10px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+
+    .result {
+      margin-top: 20px;
+      white-space: pre-wrap;
+      font-size: 1.1em;
+    }
+
+    #editSection {
+      margin-top: 30px;
+    }
+  input[type="text"]#editName {
+  max-width: 500px;
+}
+</style>
+</head>
+<body>
+  <h2>SKU 查詢系統</h2>
+  <label for="sku">搜尋 SKU（9 位數字）:</label>
+  <input type="text" id="sku" maxlength="9" />
+  <button onclick="searchSKU()">查詢</button>
+
+  <div class="result" id="result"></div>
+
+  <div id="editSection" style="display:none;">
+    <h3>編輯資料</h3>
+    <label>品名：</label>
+    <input type="text" id="editName" maxlength="50" />
+    <label>備註：</label>
+    <textarea id="editNote" rows="4"></textarea>
+    <button onclick="editSKU()">儲存</button>
+    <button onclick="deleteSKU()">刪除</button>
+    <button onclick="exportCSV()">匯出 CSV</button>
+  </div>
+
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycbzQgOuSQf80TlJM3BODl6W3V-uhMJ0SxjBy__h6UezORKN36CFTKNcZ8WEkB3lphp-JMg/exec";
+
+    function searchSKU() {
+      const sku = document.getElementById("sku").value;
+      fetch(`${scriptURL}?sku=${sku}`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("result").innerText =
+            `SKU: ${data.SKU}
+品名: ${data.品名}
+備註:
+${data.備註}`;
+          document.getElementById("editSection").style.display = "block";
+          document.getElementById("editName").value = data.品名;
+          document.getElementById("editNote").value = data.備註;
+        })
+        .catch(() => {
+          document.getElementById("result").innerText = "查無資料";
+          document.getElementById("editSection").style.display = "none";
+        });
+    }
+
+    function editSKU() {
+      const sku = document.getElementById("sku").value;
+      const name = document.getElementById("editName").value;
+      const note = document.getElementById("editNote").value;
+
+      fetch(scriptURL, {
+        method: "POST",
+        body: new URLSearchParams({ action: "edit", sku, name, note })
+      }).then(res => res.text())
+        .then(msg => alert(msg));
+    }
+
+    function deleteSKU() {
+      const sku = document.getElementById("sku").value;
+      fetch(scriptURL, {
+        method: "POST",
+        body: new URLSearchParams({ action: "delete", sku })
+      }).then(res => res.text())
+        .then(msg => {
+          alert(msg);
+          document.getElementById("result").innerText = "";
+          document.getElementById("editSection").style.display = "none";
+        });
+    }
+
+    function exportCSV() {
+      const sku = document.getElementById("sku").value;
+      const name = document.getElementById("editName").value;
+      const note = document.getElementById("editNote").value;
+      const csvContent = `SKU,品名,備註
+${sku},"${name}","${note.replace(/\n/g, '\n')}"`;
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `SKU_${sku}.csv`;
+      link.click();
+    }
+  </script>
+</body>
+</html>
